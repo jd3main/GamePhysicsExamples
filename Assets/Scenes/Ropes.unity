@@ -823,7 +823,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa73f37eeab538549a6f9f3b82ed5af9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  segmentCount: 32
+  segmentCount: 16
   width: 0.1
   length: 8
   mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
@@ -1219,7 +1219,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab7dca600e49494428dae2987c568345, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  segmentCount: 48
+  segmentCount: 16
   width: 0.1
   length: 8
   mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}

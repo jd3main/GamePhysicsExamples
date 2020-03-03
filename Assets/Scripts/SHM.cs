@@ -7,14 +7,15 @@ public class SHM : MonoBehaviour
     public float radius;
     public float freq;
     public Vector3 direction;
-    Vector3 initialPosition;
+    private Vector3 initialPosition;
 
-    void Start()
+    private void Start()
     {
         initialPosition = transform.position;
     }
-    void Update()
+
+    private void Update()
     {
-        transform.position = initialPosition + Mathf.Sin(Time.time*2*Mathf.PI*freq) * direction * radius;
+        transform.position = initialPosition + Mathf.Sin(Time.time * 2 * Mathf.PI * freq) * direction * radius;
     }
 }

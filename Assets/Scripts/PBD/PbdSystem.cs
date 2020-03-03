@@ -101,13 +101,13 @@ public class PbdSystem
                 collConstraint.pbd = this;
                 collConstraint.relation = Constraint.Relation.Geq;
                 contactConstraints.Add(collConstraint);
+                particles[i].v += dir;
 
                 Debug.DrawLine(pushOutTarget - new Vector3(0, 0, 0.1f), pushOutTarget + new Vector3(0, 0, 0.1f), Color.green);
                 Debug.DrawLine(pushOutTarget - new Vector3(0, 0.1f, 0), pushOutTarget + new Vector3(0, 0.1f, 0), Color.green);
                 Debug.DrawLine(pushOutTarget - new Vector3(0.1f, 0, 0), pushOutTarget + new Vector3(0.1f, 0, 0), Color.green);
                 Debug.DrawLine(particles[i].x, pushOutTarget, Color.red);
                 Debug.DrawRay(pushOutTarget, dir.normalized, Color.yellow);
-                particles[i].v += dir;
             }
         }
     }
