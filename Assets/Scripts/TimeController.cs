@@ -6,16 +6,24 @@ public class TimeController : MonoBehaviour
 {
     public float timeScale = 1f;
     public float fixedDeltaTime = 0.02f;
+    private float originalFixedDeltaTime;
 
-    void Awake()
+    private void Awake()
+    {
+        Time.timeScale = timeScale;
+        originalFixedDeltaTime = Time.fixedDeltaTime;
+        Time.fixedDeltaTime = fixedDeltaTime;
+    }
+
+    private void Update()
     {
         Time.timeScale = timeScale;
         Time.fixedDeltaTime = fixedDeltaTime;
     }
 
-    void Update()
+    private void OnDestroy()
     {
-        Time.timeScale = timeScale;
-        Time.fixedDeltaTime = fixedDeltaTime;
+        Time.timeScale = 1;
+        Time.fixedDeltaTime = originalFixedDeltaTime;
     }
 }

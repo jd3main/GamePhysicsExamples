@@ -47,9 +47,6 @@ public class Orbit : MonoBehaviour
         radius = R.magnitude;
         realAngularVelocity = Mathf.Sqrt(G * M / radius) / radius;
         realAngle = Mathf.Atan2(X.z, X.x);
-
-        Debug.Log("Initial X = " + X);
-        Debug.Log("Initial V = " + V);
     }
 
     private void FixedUpdate()
