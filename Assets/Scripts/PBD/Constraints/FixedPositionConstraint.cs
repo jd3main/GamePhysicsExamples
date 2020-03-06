@@ -3,22 +3,31 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-public class FixedPositionConstraint : Constraint
+namespace PBD
 {
-    public Vector3 initialPosition;
-
-    public FixedPositionConstraint(int index, Vector3 pos) : base(new int[] { index })
+    public class FixedPositionConstraint : Constraint
     {
-        initialPosition = pos;
-    }
+        public Vector3 initialPosition;
 
-    override public float Value()
-    {
-        return Vector3.Distance(ptcs[0].p, initialPosition);
-    }
+        public override void DrawGizmos()
+        {
+            Gizmos.color = Color.blue;
+            Gizmos.DrawLine(ptcs[i[0]].p, initialPosition);
+        }
 
-    override protected void Project()
-    {
-        ptcs[0].p = initialPosition;
+        public FixedPositionConstraint(int index, Vector3 pos) : base(new int[] { index })
+        {
+            initialPosition = pos;
+        }
+
+        override public float Value()
+        {
+            return Vector3.Distance(ptcs[0].p, initialPosition);
+        }
+
+        override protected void Project()
+        {
+            ptcs[0].p = initialPosition;
+        }
     }
 }

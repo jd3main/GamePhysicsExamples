@@ -2,13 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GaussSeidelSolver : Solver
+namespace PBD
 {
-    override public void Solve(IList<Constraint> constraints)
+    public class GaussSeidelSolver : Solver
     {
-        for (int i = 0; i < constraints.Count; i++)
+        override public void Solve(IList<Constraint> constraints)
         {
-            constraints[i].TryProject();
+            for (int i = 0; i < constraints.Count; i++)
+            {
+                constraints[i].TryProject();
+            }
         }
     }
 }

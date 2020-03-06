@@ -2,54 +2,13 @@
 using UnityEditor;
 using UnityEngine;
 
-public class JointRope : MonoBehaviour
+public class JointRope : Rope
 {
-    // Appearance settings
-    [SerializeField] private int segmentCount = 30;
-
-    [SerializeField] private float width = 0.1f;
-    [SerializeField] private float length = 3f;
-    public float SegmentLength => length / segmentCount;
-    [SerializeField] private Mesh mesh = null;
-    [SerializeField] private Material material = null;
-
-    // Physics settings
-    [SerializeField] private bool rootFixed = true;
-
-    [SerializeField] private float mass = 0.5f;
-    public float MassPerSegment => mass / segmentCount;
-    [SerializeField] private float drag = 0.01f;
-    [SerializeField] private float angularDrag = 0.01f;
-
-    [SerializeField] private CollisionDetectionMode collisionDetectionMode = CollisionDetectionMode.Continuous;
-    [SerializeField] private RigidbodyInterpolation interpolation = RigidbodyInterpolation.Interpolate;
-
-    [SerializeField] private bool isKinematic = false;
-    [SerializeField] private bool isTrigger = false;
-    [SerializeField] private PhysicMaterial physicMaterial = null;
+    [SerializeField] protected Mesh mesh = null;
     [SerializeField] private bool nested = true;
-    public Transform[] segments { get; protected set; } = null;
 
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.blue;
-        Gizmos.matrix = transform.localToWorldMatrix;
-        Gizmos.DrawWireSphere(Vector3.zero, 0.1f);
 
-        for (int i = 0; i < segmentCount; i++)
-        {
-            Gizmos.DrawWireCube(Vector3.down * SegmentLength * (i + 0.5f),
-                new Vector3(width, SegmentLength, width));
-        }
-        Gizmos.DrawWireCube(Vector3.down * length / 2, new Vector3(width, length, width));
-    }
-
-    private void Awake()
-    {
-        Init();
-    }
-
-    public void Init()
+    private void Start()
     {
         Clear();
         InitSegments();
@@ -68,22 +27,6 @@ public class JointRope : MonoBehaviour
             }
         }
         segments = null;
-    }
-
-    public int GetNearestBoneId(Vector3 pos)
-    {
-        int nearId = -1;
-        float nearDist = float.PositiveInfinity;
-        for (int i = 0; i < segments.Length; i++)
-        {
-            float dist = Vector3.Distance(segments[i].position, pos);
-            if (dist < nearDist)
-            {
-                nearId = i;
-                nearDist = dist;
-            }
-        }
-        return nearId;
     }
 
     private void InitSegments()

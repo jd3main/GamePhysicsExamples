@@ -1,128 +1,134 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-public abstract class Constraint
+namespace PBD
 {
-    public enum Relation
+    public abstract class Constraint
     {
-        Equ,    // C=0
-        Leq,    // C<=0
-        Geq,    // C>=0
-    }
-
-    public PbdSystem pbd;
-    public int[] i;
-    public int arity => i.Length;
-    public Relation relation = Relation.Equ;
-    protected List<Particle> ptcs => pbd?.particles;
-    protected readonly Vector3[] dp;
-
-    public Constraint(int _arity)
-    {
-        i = new int[_arity];
-        dp = new Vector3[_arity];
-    }
-
-    public Constraint(int[] indices)
-    {
-        i = indices.Clone() as int[];
-        dp = new Vector3[arity];
-    }
-
-
-    abstract public float Value();
-
-    abstract protected void Project();
-
-    public bool TryProject()
-    {
-        if (!isSatisfied)
+        public enum Relation
         {
-            Project();
-            return true;
-        }
-        return false;
-    }
-
-    protected void ProjectByGeneralFormula(Vector3[] gradient)
-    {
-        float s = GetS(gradient);
-
-        if (isSatisfied)
-        {
-            return;
+            Equ,    // C = 0
+            Leq,    // C <= 0
+            Geq,    // C >= 0
         }
 
-        for (int j = 0; j < arity; j++)
+        public World world;
+        public int[] i;
+        public int arity => i.Length;
+        public Relation relation = Relation.Equ;
+        protected List<Particle> ptcs => world?.particles;
+        protected readonly Vector3[] dp;    // Δp
+
+
+        public abstract void DrawGizmos();
+
+        public Constraint(int _arity)
         {
-            dp[j] = -s * ptcs[i[j]].w * gradient[j];
+            i = new int[_arity];
+            dp = new Vector3[_arity];
         }
 
-        for (int j = 0; j < arity; j++)
+        public Constraint(int[] indices)
         {
-            ptcs[i[j]].p += dp[j];
+            i = indices.Clone() as int[];
+            dp = new Vector3[arity];
         }
-    }
 
-    public bool isSatisfied
-    {
-        get
+
+        abstract public float Value();
+
+        abstract protected void Project();
+
+        public bool TryProject()
         {
-            float val = Value();
-            switch (relation)
+            if (!isSatisfied)
             {
-                case Relation.Equ:
-                    return val == 0;
-
-                case Relation.Leq:
-                    return val <= 0;
-
-                case Relation.Geq:
-                    return val >= 0;
+                Project();
+                return true;
             }
             return false;
         }
-    }
 
-    protected float GetS(Vector3[] gradient)
-    {
-        float numer = Value();
-        if (numer == 0)
-            return 0;
-
-        float denom = 0;
-        for (int j = 0; j < arity; j++)
+        protected void ProjectByGeneralFormula(Vector3[] gradient)
         {
-            denom += ptcs[i[j]].w * Vector3.SqrMagnitude(gradient[j]);
-        }
+            float s = GetS(gradient);
 
-        if (denom == 0)
-        {/*
-            Debug.LogWarning("s = " + numer + "/" + denom + "\n"
-                + GetType().Name);
+            if (isSatisfied)
+            {
+                return;
+            }
 
             for (int j = 0; j < arity; j++)
-                Debug.Log("ptc[" + i[j] + "].w = " + ptcs[i[j]].w);
+            {
+                dp[j] = -s * ptcs[i[j]].w * gradient[j];
+            }
 
-            Debug.Log("Gradient = ");
             for (int j = 0; j < arity; j++)
-                Debug.Log(gradient[j]);
-
-            if (GetType().Name == "WallConstraint")
             {
-                WallConstraint wc = (this as WallConstraint);
-                Debug.Log("wc.normal = " + wc.normal);
-                Debug.Log("wc.shift = " + wc.shift);
+                ptcs[i[j]].p += dp[j];
             }
-            else if (GetType().Name == "DistanceConstraint")
-            {
-                DistanceConstraint dc = (this as DistanceConstraint);
-                Debug.Log("dc.d " + dc.d);
-            }
-            */
-            return 0;
         }
 
-        return numer / denom;
+        public bool isSatisfied
+        {
+            get
+            {
+                float val = Value();
+                switch (relation)
+                {
+                    case Relation.Equ:
+                        return val == 0;
+
+                    case Relation.Leq:
+                        return val <= 0;
+
+                    case Relation.Geq:
+                        return val >= 0;
+                }
+                return false;
+            }
+        }
+
+        protected float GetS(Vector3[] gradient)
+        {
+            float numer = Value();
+            if (numer == 0)
+                return 0;
+
+            float denom = 0;
+            for (int j = 0; j < arity; j++)
+            {
+                denom += ptcs[i[j]].w * Vector3.SqrMagnitude(gradient[j]);
+            }
+
+            if (denom == 0)
+            {
+                Debug.LogWarning("s = " + numer + "/" + denom + "\n"
+                    + GetType().Name);
+                /*
+                for (int j = 0; j < arity; j++)
+                    Debug.Log("ptc[" + i[j] + "].w = " + ptcs[i[j]].w);
+
+                Debug.Log("Gradient = ");
+                for (int j = 0; j < arity; j++)
+                    Debug.Log(gradient[j]);
+
+                if (GetType().Name == "WallConstraint")
+                {
+                    WallConstraint wc = (this as WallConstraint);
+                    Debug.Log("wc.normal = " + wc.normal);
+                    Debug.Log("wc.shift = " + wc.shift);
+                }
+                else if (GetType().Name == "DistanceConstraint")
+                {
+                    DistanceConstraint dc = (this as DistanceConstraint);
+                    Debug.Log("dc.d " + dc.d);
+                }
+                */
+                return 0;
+            }
+
+            return numer / denom;
+        }
     }
 }

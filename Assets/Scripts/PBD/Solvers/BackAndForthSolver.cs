@@ -2,26 +2,29 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BackAndForthSolver : Solver
+namespace PBD
 {
-    private bool rev;
-
-    override public void Solve(IList<Constraint> constraints)
+    public class BackAndForthSolver : Solver
     {
-        if (rev)
+        private bool rev;
+
+        override public void Solve(IList<Constraint> constraints)
         {
-            for (int i = constraints.Count - 1; i >= 0; i--)
+            if (rev)
             {
-                constraints[i].TryProject();
+                for (int i = constraints.Count - 1; i >= 0; i--)
+                {
+                    constraints[i].TryProject();
+                }
             }
-        }
-        else
-        {
-            for (int i = 0; i < constraints.Count; i++)
+            else
             {
-                constraints[i].TryProject();
+                for (int i = 0; i < constraints.Count; i++)
+                {
+                    constraints[i].TryProject();
+                }
             }
+            rev = !rev;
         }
-        rev = !rev;
     }
 }

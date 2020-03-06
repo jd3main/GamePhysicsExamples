@@ -1,17 +1,18 @@
 ﻿using System.Collections;
 using UnityEditor;
 using UnityEngine;
+using PBD;
 
-public class PBDRope : MonoBehaviour
+[RequireComponent(typeof(World))]
+public class PBDRope : Rope
 {
     public enum LongRangeConstraintsMode
     {
-        // Sorted by calculation time (accending)
-        None = 0,
-
-        Linear,
-        Normal,
-        FullConnected,
+        /* Sorted by calculation time (accending) */
+        None,       // Without long range constraints
+        Linear,     // O(n) numbers of long range constraints
+        Normal,     // O(n*log(n)) numbers of long range constraints (recommanded)
+        Dense,      // O(n^2) numbers of long range constraints
     }
 
     public enum SolverType
@@ -20,75 +21,27 @@ public class PBDRope : MonoBehaviour
         BackAndForth,
     }
 
-    // Appearance settings
-    [SerializeField] private int segmentCount = 30;
+    [SerializeField] protected Mesh mesh = null;
 
-    [SerializeField] private float width = 0.1f;
-    [SerializeField] private float length = 3f;
-    public float SegmentLength => length / segmentCount;
-    [SerializeField] private Mesh mesh = null;
-    [SerializeField] private Material material = null;
+    [SerializeField] protected LongRangeConstraintsMode longRangeConstraintsMode = LongRangeConstraintsMode.Normal;
+    [SerializeField] protected SolverType solverType = SolverType.GaussSeidel;
+    [SerializeField] protected bool enableAdjustRotation = true;
 
-    // Physics settings
-    [SerializeField] private bool rootFixed = true;
-
-    [SerializeField] private float mass = 0.5f;
-    public float MassPerSegment => mass / segmentCount;
-    [SerializeField] private float drag = 0.01f;
-    [SerializeField] private float angularDrag = 0.01f;
-
-    [SerializeField] private CollisionDetectionMode collisionDetectionMode = CollisionDetectionMode.Continuous;
-    [SerializeField] private RigidbodyInterpolation interpolation = RigidbodyInterpolation.Interpolate;
-
-    [SerializeField] private bool isKinematic = false;
-    [SerializeField] private bool isTrigger = false;
-    [SerializeField] private PhysicMaterial physicMaterial = null;
-    [SerializeField] private LongRangeConstraintsMode longRangeConstraintsMode = LongRangeConstraintsMode.Normal;
-    [SerializeField] private SolverType solverType = SolverType.GaussSeidel;
-    [SerializeField] private bool enableAdjustRotation = true;
-
-    // Contents of the rope
-    public Transform[] segments { get; protected set; } = null;
-
-    public PbdSystem Pbd => pbd;
-    [SerializeField] private PbdSystem pbd = new PbdSystem();
-
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.blue;
-        Gizmos.matrix = transform.localToWorldMatrix;
-        Gizmos.DrawWireSphere(Vector3.zero, 0.1f);
-
-        for (int i = 0; i < segmentCount; i++)
-        {
-            Gizmos.DrawWireCube(Vector3.down * SegmentLength * (i + 0.5f),
-                new Vector3(width, SegmentLength, width));
-        }
-        Gizmos.DrawWireCube(Vector3.down * length / 2, new Vector3(width, length, width));
-    }
+    [SerializeField] protected World world;
 
     private void Start()
     {
-        Init();
+        world = GetComponent<World>();
+        Clear();
+        InitSegments();
+        InitPbdWorld();
     }
 
     private void FixedUpdate()
     {
-        pbd.Solve(Time.fixedDeltaTime);
+        world.Solve(Time.fixedDeltaTime);
         if (enableAdjustRotation)
             AdjustRotation();
-    }
-
-    private void Update()
-    {
-        AdjustRotation();
-    }
-
-    public void Init()
-    {
-        Clear();
-        InitSegments();
-        InitPbd();
     }
 
     public void Clear()
@@ -104,28 +57,9 @@ public class PBDRope : MonoBehaviour
             }
         }
         segments = null;
-
-        pbd.particles.Clear();
-        pbd.constraints.Clear();
     }
 
-    public int GetNearestSegmentId(Vector3 pos)
-    {
-        int nearId = -1;
-        float nearDist = float.PositiveInfinity;
-        for (int i = 0; i < segments.Length; i++)
-        {
-            float dist = Vector3.Distance(segments[i].position, pos);
-            if (dist < nearDist)
-            {
-                nearId = i;
-                nearDist = dist;
-            }
-        }
-        return nearId;
-    }
-
-    private void InitSegments()
+    protected void InitSegments()
     {
         segments = new Transform[segmentCount];
         segments[0] = (new GameObject("s0")).transform;
@@ -146,11 +80,10 @@ public class PBDRope : MonoBehaviour
         {
             GameObject segmentGameObject = new GameObject("s" + i);
             segments[i] = segmentGameObject.transform;
-            segments[i].parent = segments[i - 1];
-            segments[i].localRotation = Quaternion.identity;
-            segments[i].localPosition = Vector3.down * SegmentLength;
-            segments[i].localScale = Vector3.one;
             segments[i].parent = this.transform;
+            segments[i].localRotation = Quaternion.identity;
+            segments[i].localPosition = Vector3.down * SegmentLength * i;
+            segments[i].localScale = Vector3.one;
             segments[i].gameObject.layer = this.gameObject.layer;
 
             // Init Rigidbody
@@ -188,7 +121,7 @@ public class PBDRope : MonoBehaviour
         }
     }
 
-    private Mesh GetScaledMesh(Mesh originalMesh, Vector3 scale)
+    protected Mesh GetScaledMesh(Mesh originalMesh, Vector3 scale)
     {
         Vector3[] newVertices = originalMesh.vertices;
         for (int i = 0; i < newVertices.Length; i++)
@@ -208,17 +141,17 @@ public class PBDRope : MonoBehaviour
     }
 
 
-    private void InitPbd()
+    protected void InitPbdWorld()
     {
-        pbd.AddParticle(new Particle(segments[0], MassPerSegment));
-        pbd.AddStaticConstraint(new FixedPositionConstraint(0, segments[0].position));
-        pbd.particles[0].useGravity = false;
+        world.AddParticle(new Particle(segments[0], MassPerSegment));
+        world.AddStaticConstraint(new FixedPositionConstraint(0, segments[0].position));
+        world.particles[0].useGravity = false;
         for (int i = 1; i < segments.Length; i++)
         {
-            pbd.AddParticle(new Particle(segments[i], MassPerSegment));
+            world.AddParticle(new Particle(segments[i], MassPerSegment));
             var C = new DistanceConstraint(i - 1, i, SegmentLength);
             C.relation = Constraint.Relation.Equ;
-            pbd.AddConstraint(new DistanceConstraint(i - 1, i, SegmentLength));
+            world.AddConstraint(new DistanceConstraint(i - 1, i, SegmentLength));
         }
 
         switch (longRangeConstraintsMode)
@@ -233,31 +166,31 @@ public class PBDRope : MonoBehaviour
                     {
                         var C = new DistanceConstraint(j - i, j, SegmentLength * i);
                         C.relation = Constraint.Relation.Leq;
-                        pbd.AddConstraint(C);
+                        world.AddConstraint(C);
                     }
                 }
                 break;
 
-            case LongRangeConstraintsMode.Normal: // N*log(N)
+            case LongRangeConstraintsMode.Normal:
                 for (int i = 2; i < segments.Length; i *= 2)
                 {
                     for (int j = i; j < segments.Length; j++)
                     {
                         var C = new DistanceConstraint(j - i, j, SegmentLength * i);
                         C.relation = Constraint.Relation.Leq;
-                        pbd.AddConstraint(C);
+                        world.AddConstraint(C);
                     }
                 }
                 break;
 
-            case LongRangeConstraintsMode.FullConnected: // N*(N-1)/2
+            case LongRangeConstraintsMode.Dense:
                 for (int i = 0; i < segments.Length; i++)
                 {
                     for (int j = i + 2; j < segments.Length; j++)
                     {
                         var C = new DistanceConstraint(i, j, SegmentLength * (j - i));
                         C.relation = Constraint.Relation.Leq;
-                        pbd.AddConstraint(C);
+                        world.AddConstraint(C);
                     }
                 }
                 break;
@@ -266,16 +199,16 @@ public class PBDRope : MonoBehaviour
         switch (solverType)
         {
             case SolverType.GaussSeidel:
-                pbd.solver = new GaussSeidelSolver();
+                world.solver = new GaussSeidelSolver();
                 break;
 
             case SolverType.BackAndForth:
-                pbd.solver = new BackAndForthSolver();
+                world.solver = new BackAndForthSolver();
                 break;
         }
     }
 
-    private void AdjustRotation()
+    protected void AdjustRotation()
     {
         for (int i = 1; i < segments.Length; i++)
         {

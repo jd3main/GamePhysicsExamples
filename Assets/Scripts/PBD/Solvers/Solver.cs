@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
 
-public abstract class Solver
+namespace PBD
 {
-    abstract public void Solve(IList<Constraint> constraints);
+    public abstract class Solver
+    {
+        abstract public void Solve(IList<Constraint> constraints);
+    }
 }
