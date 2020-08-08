@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using UnityEditor;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class JointRope : Rope
 {
@@ -18,11 +16,11 @@ public class JointRope : Rope
     {
         if (segments != null)
         {
-            foreach (var bone in segments)
+            foreach (var s in segments)
             {
-                if (bone != null)
+                if (s != null)
                 {
-                    Destroy(bone.gameObject);
+                    Destroy(s.gameObject);
                 }
             }
         }
@@ -56,13 +54,15 @@ public class JointRope : Rope
         {
             GameObject segmentGameObject = new GameObject("s" + i);
             segments[i] = segmentGameObject.transform;
-            segments[i].parent = nested ? segments[i - 1] : this.transform;
+            segments[i].parent = segments[i - 1];
             segments[i].localRotation = Quaternion.identity;
             segments[i].localPosition = Vector3.down * SegmentLength;
             segments[i].localScale = Vector3.one;
+            if (!nested)
+                segments[i].parent = this.transform;
             segments[i].gameObject.layer = this.gameObject.layer;
 
-            // Init Rigidbody
+            // Initialize the Rigidbody
             Rigidbody rigid = segments[i].gameObject.AddComponent<Rigidbody>();
             rigid.isKinematic = isKinematic;
             rigid.mass = MassPerSegment;
@@ -71,23 +71,22 @@ public class JointRope : Rope
             rigid.interpolation = interpolation;
             rigid.collisionDetectionMode = collisionDetectionMode;
 
-            // Init Joint
-            HingeJoint joint = segmentGameObject.AddComponent<HingeJoint>();
+            // Initialize the Joint
+            CharacterJoint joint = segmentGameObject.AddComponent<CharacterJoint>();
             joint.connectedBody = segments[i - 1].GetComponent<Rigidbody>();
-            joint.enablePreprocessing = false;
             joint.autoConfigureConnectedAnchor = false;
             joint.connectedAnchor = new Vector3(0, -SegmentLength / 2, 0);
             joint.anchor = new Vector3(0, SegmentLength / 2, 0);
 
-            // Init Colliders
+            // Initialize the Collider
             CapsuleCollider collider = segments[i].gameObject.AddComponent<CapsuleCollider>();
             collider.center = Vector3.zero;
             collider.radius = width / 2;
-            collider.height = SegmentLength - 0.1f;
+            collider.height = SegmentLength * 0.99f;
             collider.isTrigger = isTrigger;
             collider.sharedMaterial = physicMaterial;
 
-            // Init Meshes and Renderers
+            // Initialize the Mesh and Renderer
             Vector3 scale = new Vector3(width, SegmentLength, width);
             scale.x /= mesh.bounds.size.x;
             scale.y /= mesh.bounds.size.y;
@@ -98,6 +97,11 @@ public class JointRope : Rope
             MeshRenderer renderer = segments[i].gameObject.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = material;
         }
+    }
+
+    private void Update()
+    {
+        Rigidbody rigid = segments[1].gameObject.GetComponent<Rigidbody>();
     }
 
     private Mesh GetScaledMesh(Mesh originalMesh, Vector3 scale)

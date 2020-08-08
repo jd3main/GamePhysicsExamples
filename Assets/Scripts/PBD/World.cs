@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Experimental.PlayerLoop;
 
 namespace PBD
 {
@@ -40,7 +41,12 @@ namespace PBD
                 C.DrawGizmos();
         }
 
-        public void Solve(float dt)
+        private void FixedUpdate()
+        {
+            Simulate(Time.fixedDeltaTime);
+        }
+
+        public void Simulate(float dt)
         {
             // Manage external forces
             if (enableExternalContact)
@@ -100,8 +106,7 @@ namespace PBD
                 {
                     Vector3 dv = particles[i].rigidbody.velocity - particles[i].v;
                     Vector3 dx = particles[i].rigidbody.position - (particles[i].x + particles[i].rigidbody.velocity * dt);
-
-                    Vector3 pushOutTarget = particles[i].x + dx + dv * dt;
+                    Vector3 pushOutTarget = particles[i].x + /*dx +*/ dv * dt;
                     Vector3 dir = dx + dv * dt;
                     WallConstraint collConstraint = new WallConstraint(i, pushOutTarget, dir);
                     collConstraint.world = this;

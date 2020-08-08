@@ -34,6 +34,11 @@ public class Orbit : MonoBehaviour
     private float realAngle;
     private float radius;
 
+    public bool recordEnergy = true;
+    [HideInInspector] public const float m = 1;
+    [HideInInspector] public float kineticEnergy;
+    [HideInInspector] public float potentialEnergy;
+    public float totalEnergy => kineticEnergy + potentialEnergy;
 
 
     private void Start()
@@ -41,7 +46,12 @@ public class Orbit : MonoBehaviour
         X = orbiter.position;
         if (circularMotion)
             SetupCircularMotionSpeed();
-        prevX = X - V * Time.fixedDeltaTime;
+
+        if (integrationMethod == IntegrationMethod.Verlet)
+        {
+            float dt = Time.fixedDeltaTime;
+            prevX = X - V * dt + 0.5f * Ac * dt * dt;
+        }
 
         // ω = V/R
         radius = R.magnitude;
@@ -66,17 +76,12 @@ public class Orbit : MonoBehaviour
                 break;
 
             case IntegrationMethod.Verlet:
-                // X(t+Δt) = 2*X(t) - X(t-Δt) + A(t)*Δt^2
-                nextX = 2 * X - prevX + A * dt * dt;
-                prevX = X;
-                X = nextX;
+                Vector3 tmpX = X;
+                X += X - prevX + A * dt * dt;
+                prevX = tmpX;
                 break;
 
             case IntegrationMethod.VelocityVerlet:
-                // The following codes are equivilent to:
-                //      V(t+1) = V(t) + A(t)*Δt
-                //      X(t+Δt) = X(t) + V(t+1)*Δt
-                //      V(t+Δt) = (X(t+Δt) - X(t)) / dt
                 V = V + (A * dt);
                 nextX = X + (V * dt);
                 V = (nextX - X) / dt;
@@ -87,6 +92,17 @@ public class Orbit : MonoBehaviour
                 realAngle += realAngularVelocity * dt;
                 X = radius * new Vector3(Mathf.Cos(realAngle), 0, Mathf.Sin(realAngle));
                 break;
+        }
+
+        // Record Energy
+        if (recordEnergy)
+        {
+            potentialEnergy = -G * M * m / R.magnitude;
+            if (integrationMethod == IntegrationMethod.Verlet)
+            {
+                V = (X - prevX) / dt;
+            }
+            kineticEnergy = 0.5f * m * V.sqrMagnitude;
         }
     }
 

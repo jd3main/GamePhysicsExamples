@@ -37,9 +37,8 @@ public class PBDRope : Rope
         InitPbdWorld();
     }
 
-    private void FixedUpdate()
+    private void LateUpdate()
     {
-        world.Solve(Time.fixedDeltaTime);
         if (enableAdjustRotation)
             AdjustRotation();
     }
@@ -104,7 +103,7 @@ public class PBDRope : Rope
             CapsuleCollider collider = segments[i].gameObject.AddComponent<CapsuleCollider>();
             collider.center = Vector3.zero;
             collider.radius = width / 2;
-            collider.height = SegmentLength - 0.1f;
+            collider.height = SegmentLength * 0.99f;
             collider.isTrigger = isTrigger;
             collider.sharedMaterial = physicMaterial;
 
@@ -144,7 +143,7 @@ public class PBDRope : Rope
     protected void InitPbdWorld()
     {
         world.AddParticle(new Particle(segments[0], MassPerSegment));
-        world.AddStaticConstraint(new FixedPositionConstraint(0, segments[0].position));
+        world.AddStaticConstraint(new AttachConstraint(0, this.transform, Vector3.zero));
         world.particles[0].useGravity = false;
         for (int i = 1; i < segments.Length; i++)
         {
@@ -171,7 +170,7 @@ public class PBDRope : Rope
                 }
                 break;
 
-            case LongRangeConstraintsMode.Normal:
+            case LongRangeConstraintsMode.Normal: // N*log(N)
                 for (int i = 2; i < segments.Length; i *= 2)
                 {
                     for (int j = i; j < segments.Length; j++)
@@ -183,7 +182,7 @@ public class PBDRope : Rope
                 }
                 break;
 
-            case LongRangeConstraintsMode.Dense:
+            case LongRangeConstraintsMode.Dense: // N*(N-1)/2
                 for (int i = 0; i < segments.Length; i++)
                 {
                     for (int j = i + 2; j < segments.Length; j++)

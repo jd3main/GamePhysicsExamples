@@ -38,7 +38,10 @@ namespace PBD
         {
             transform.position = x;
             if (rigidbody != null)
+            {
                 rigidbody.velocity = v;
+                w = 1 / rigidbody.mass;
+            }
         }
     }
 }

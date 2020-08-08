@@ -5,30 +5,9 @@ using PBD;
 
 [RequireComponent(typeof(SkinnedMeshRenderer))]
 [RequireComponent(typeof(World))]
-public class PBDMeshRope : Rope
+public class PBDMeshRope : PBDRope
 {
     [SerializeField] protected int meshSides;
-
-    public enum LongRangeConstraintsMode
-    {
-        /* Sorted by calculation time (accending) */
-        None,       // Without long range constraints
-        Linear,     // O(n) numbers of long range constraints
-        Normal,     // O(n*log(n)) numbers of long range constraints (recommanded)
-        Dense,      // O(n^2) numbers of long range constraints
-    }
-
-    public enum SolverType
-    {
-        GaussSeidel,
-        BackAndForth,
-    }
-
-    [SerializeField] protected LongRangeConstraintsMode longRangeConstraintsMode = LongRangeConstraintsMode.Normal;
-    [SerializeField] protected SolverType solverType = SolverType.GaussSeidel;
-    [SerializeField] protected bool enableAdjustRotation = true;
-
-    [SerializeField] protected World world;
 
     private void Start()
     {
@@ -39,30 +18,14 @@ public class PBDMeshRope : Rope
         InitPbdWorld();
     }
 
-    private void FixedUpdate()
+    private void LateUpdate()
     {
-        world.Solve(Time.fixedDeltaTime);
         if (enableAdjustRotation)
             AdjustRotation();
     }
 
-    public void Clear()
-    {
-        if (segments != null)
-        {
-            foreach (var s in segments)
-            {
-                if (s != null)
-                {
-                    Destroy(s.gameObject);
-                }
-            }
-        }
-        segments = null;
-    }
 
-
-    private void InitSegments()
+    protected new void InitSegments()
     {
         segments = new Transform[segmentCount + 1];
         segments[0] = (new GameObject("s0")).transform;
@@ -146,82 +109,5 @@ public class PBDMeshRope : Rope
         renderer.allowOcclusionWhenDynamic = false;
         renderer.updateWhenOffscreen = true;
         renderer.sharedMaterial = material;
-    }
-
-    protected void InitPbdWorld()
-    {
-        world.AddParticle(new Particle(segments[0], MassPerSegment));
-        world.AddStaticConstraint(new FixedPositionConstraint(0, segments[0].position));
-        world.particles[0].useGravity = false;
-        for (int i = 1; i < segments.Length; i++)
-        {
-            world.AddParticle(new Particle(segments[i], MassPerSegment));
-            var C = new DistanceConstraint(i - 1, i, SegmentLength);
-            C.relation = Constraint.Relation.Equ;
-            world.AddConstraint(new DistanceConstraint(i - 1, i, SegmentLength));
-        }
-
-        switch (longRangeConstraintsMode)
-        {
-            case LongRangeConstraintsMode.None:
-                break;
-
-            case LongRangeConstraintsMode.Linear:
-                for (int i = 2; i < segments.Length; i *= 2)
-                {
-                    for (int j = i; j < segments.Length; j += i)
-                    {
-                        var C = new DistanceConstraint(j - i, j, SegmentLength * i);
-                        C.relation = Constraint.Relation.Leq;
-                        world.AddConstraint(C);
-                    }
-                }
-                break;
-
-            case LongRangeConstraintsMode.Normal: // N*log(N)
-                for (int i = 2; i < segments.Length; i *= 2)
-                {
-                    for (int j = i; j < segments.Length; j++)
-                    {
-                        var C = new DistanceConstraint(j - i, j, SegmentLength * i);
-                        C.relation = Constraint.Relation.Leq;
-                        world.AddConstraint(C);
-                    }
-                }
-                break;
-
-            case LongRangeConstraintsMode.Dense: // N*(N-1)/2
-                for (int i = 0; i < segments.Length; i++)
-                {
-                    for (int j = i + 2; j < segments.Length; j++)
-                    {
-                        var C = new DistanceConstraint(i, j, SegmentLength * (j - i));
-                        C.relation = Constraint.Relation.Leq;
-                        world.AddConstraint(C);
-                    }
-                }
-                break;
-        }
-
-        switch (solverType)
-        {
-            case SolverType.GaussSeidel:
-                world.solver = new GaussSeidelSolver();
-                break;
-
-            case SolverType.BackAndForth:
-                world.solver = new BackAndForthSolver();
-                break;
-        }
-    }
-
-    protected void AdjustRotation()
-    {
-        for (int i = 1; i < segments.Length; i++)
-        {
-            Vector3 direction = (segments[i - 1].position - segments[i].position).normalized;
-            Quaternion deltaRot = Quaternion.FromToRotation(segments[i].up, direction);
-            segments[i].rotation = deltaRot * segments[i].rotation;
-        }
     }
 }
